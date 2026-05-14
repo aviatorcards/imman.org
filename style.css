@@ -1,6 +1,6 @@
 /*
 Theme Name: IMMAN Custom
-Theme URI: https://monotreme.org
+Theme URI: https://imman.fddl.dev
 Author: Tristan
 Description: A bespoke, community-focused theme for the Indiana Musician Mutual Aid Network.
 Version: 1.0.1
@@ -75,7 +75,7 @@ a:hover {
     border-bottom: 1px solid rgba(0,0,0,0.05);
     position: sticky;
     top: 0;
-    z-index: 100;
+    z-index: 1002;
 }
 
 .site-logo {
@@ -125,21 +125,44 @@ a:hover {
 }
 
 .main-navigation {
+    position: fixed;
+    top: 0;
+    right: -100%;
+    width: 90%;
+    max-width: 520px;
+    height: 100vh;
+    background: #fff;
+    padding: 100px 50px 40px;
+    box-shadow: -10px 0 30px rgba(0,0,0,0.1);
+    transition: right 0.65s cubic-bezier(0.165, 0.84, 0.44, 1);
+    z-index: 1000;
     display: flex;
-    align-items: center;
+    flex-direction: column;
+    align-items: flex-start;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
+}
+
+.is-open .main-navigation {
+    right: 0;
+    transition: right 0.4s cubic-bezier(0.165, 0.84, 0.44, 1);
 }
 
 .main-navigation ul {
     list-style: none;
     display: flex;
-    gap: 28px; /* Adjusted gap to fit better */
-    align-items: center;
+    flex-direction: column;
+    gap: 24px;
+    align-items: flex-start;
+    width: 100%;
 }
 
 .main-navigation a {
-    font-weight: 500;
-    text-transform: none; /* Mixed case for better legibility and distinction */
-    font-size: 1rem; /* Slightly larger */
+    font-family: var(--font-heading);
+    font-weight: 700;
+    text-transform: none;
+    font-size: 1.8rem; /* Make it large and impactful for off-canvas */
     letter-spacing: -0.01em;
     color: var(--color-black);
     opacity: 0.7;
@@ -153,7 +176,10 @@ a:hover {
 }
 
 .user-nav {
-    margin-left: 30px;
+    margin-top: 40px;
+    padding-top: 40px;
+    border-top: 1px solid rgba(0,0,0,0.05);
+    width: 100%;
 }
 
 .user-nav a {
@@ -163,12 +189,14 @@ a:hover {
     color: #fff !important;
     padding: 10px 24px;
     border-radius: 50px;
-    font-size: 0.75rem;
+    font-size: 0.85rem;
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.05em;
     transition: all 0.2s ease;
     opacity: 1 !important;
+    width: 100%;
+    text-align: center;
 }
 
 .user-nav a:hover {
@@ -291,9 +319,11 @@ a:hover {
     font-size: 0.9rem;
 }
 
-/* Mobile Toggle */
+/* Menu Toggle */
 .menu-toggle {
-    display: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     background: none;
     border: none;
     padding: 10px;
@@ -371,6 +401,12 @@ body.menu-open {
     overflow: hidden;
 }
 
+@media (min-width: 769px) {
+    body::after {
+        display: none !important;
+    }
+}
+
 /* Sections */
 .pillars {
     background: var(--color-cream-dark);
@@ -444,45 +480,6 @@ body.menu-open {
 }
 
 @media (max-width: 768px) {
-    .menu-toggle {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-    }
-
-    .main-navigation {
-        position: fixed;
-        top: 0;
-        right: -100%;
-        width: 80%;
-        max-width: 300px;
-        height: 100vh;
-        background: #fff;
-        padding: 100px 40px;
-        box-shadow: -10px 0 30px rgba(0,0,0,0.1);
-        transition: right 0.4s cubic-bezier(0.165, 0.84, 0.44, 1);
-        z-index: 1000;
-        display: block;
-    }
-
-    .is-open .main-navigation {
-        right: 0;
-    }
-
-    .main-navigation ul {
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 20px;
-    }
-
-    .main-navigation a {
-        font-size: 1.2rem;
-    }
-
-    .user-nav {
-        margin-left: 0;
-        margin-top: 40px;
-    }
 
     .hero {
         padding: 60px 0;

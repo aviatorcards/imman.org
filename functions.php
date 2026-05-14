@@ -211,7 +211,7 @@ function imman_handle_contact_form() {
         exit;
     }
 
-    $to      = get_option( 'admin_email' ); // Fallback to site admin if needed, or 'hello@monotreme.org'
+    $to      = get_option( 'admin_email' ); // Fallback to site admin if needed, or 'hello@imman.fddl.dev'
     $headers = array(
         'Content-Type: text/html; charset=UTF-8',
         'From: ' . $name . ' <' . $email . '>',

@@ -28,7 +28,7 @@ get_header(); ?>
 
                 <div class="contact-method">
                     <h3>Email</h3>
-                    <p><a href="mailto:hello@monotreme.org" class="contact-link">hello@monotreme.org</a></p>
+                    <p><a href="mailto:hello@imman.fddl.dev" class="contact-link">hello@imman.fddl.dev</a></p>
                 </div>
 
                 <div class="contact-method">

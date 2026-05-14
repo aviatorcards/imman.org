@@ -34,6 +34,12 @@
                     <p>Every musician has a "day job." We trade non-musical talents—fixing laptops, cars, or legal docs—to keep our community strong.</p>
                     <a href="<?php echo esc_url( home_url( '/skills' ) ); ?>" class="btn-link">View Ledger &rarr;</a>
                 </div>
+                <div class="pillar-card">
+                    <span class="program-status" style="margin-bottom: 10px; display: inline-block;">Coming Soon</span>
+                    <h3>Artist Sites</h3>
+                    <p>Building professional corners of the web for Indiana artists. Get your own subdomain and a musician-focused site on the IMMAN network.</p>
+                    <a href="<?php echo esc_url( home_url( '/artist-sites' ) ); ?>" class="btn-link">Learn More &rarr;</a>
+                </div>
             </div>
         </div>
     </section>
