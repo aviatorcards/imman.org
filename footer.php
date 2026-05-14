@@ -5,7 +5,8 @@
         </div>
         <div class="footer-bottom">
             <p>&copy; <?php echo date('Y'); ?> <?php bloginfo( 'name' ); ?>. By musicians, for musicians.</p><br />
-            <p>Built using <a href="https://wordpress.org" target="_blank">WordPress</a>. Developed by <a href="https://fddl.dev" target="_blank">Tristan</a>.</p><br />
+            <p>Built using <a href="https://wordpress.org" target="_blank">WordPress</a>.</p><br /> 
+            <p>Developed by <a href="https://fddl.dev" target="_blank">Tristan</a>.</p><br />
             <p>The dream of <a href="https://bethanyrhodes.com" target="_blank">Bethany</a>.</p>
         </div>
     </div>
