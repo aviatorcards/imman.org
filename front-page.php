@@ -1,7 +1,7 @@
 <?php get_header(); ?>
 
 <div class="dev-banner" style="background: var(--color-amber); color: #fff; text-align: center; padding: 10px; font-size: 0.8rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; position: relative; z-index: 101;">
-    Development Build — Version 0.8.4 Alpha — Site Under Construction
+    Development Build — Version 0.8.5 Alpha — Site Under Construction
 </div>
 
 <main id="primary" class="site-main">
