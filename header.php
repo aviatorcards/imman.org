@@ -12,6 +12,9 @@
     <div class="container header-flex">
         <div class="site-branding">
             <a href="<?php echo esc_url( home_url( '/' ) ); ?>" rel="home" class="site-logo">
+                <span class="site-emblem" aria-hidden="true">
+                    <img src="<?php echo get_template_directory_uri(); ?>/images/indiana-torch-icon.png" alt="Indiana Torch Logo" class="site-emblem__img" />
+                </span>
                 <div class="logo-text">
                     <span class="logo-main">IMMAN</span>
                     <span class="logo-sub">Indiana Musician Mutual Aid Network</span>

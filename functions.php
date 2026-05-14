@@ -134,7 +134,7 @@ function imman_scripts() {
             border-color: var(--color-green);
             background-color: #fff;
             outline: none;
-            box-shadow: 0 0 0 4px rgba(45, 90, 39, 0.05);
+            box-shadow: 0 0 0 4px rgba(42, 80, 200, 0.10);
         }
 
         .imman-custom-contact-form .contact-success-msg {

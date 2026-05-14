@@ -15,7 +15,7 @@ get_header(); ?>
     <div class="feature-row">
         <div class="feature-content">
             <h2>Horizontal Leadership</h2>
-            <p>We have no traditional board of directors. Decisions are made by active, local musicians who understand the daily challenges of the industry.</p>
+            <p>We have no traditional board of directors. Decisions are made by active, local musicians who understand the daily challenges of the industry.</p><br />
             <p>This structure ensures that our resources go directly to where they are needed most—not into bureaucratic overhead or grant-writing cycles.</p>
         </div>
         <div class="feature-image-placeholder">
@@ -26,7 +26,7 @@ get_header(); ?>
     <div class="feature-row">
         <div class="feature-content">
             <h2>Direct Action</h2>
-            <p>We prioritize immediate needs. If a van breaks down on tour, we help with roadside assistance. If a rig fails mid-show, we provide loaner gear.</p>
+            <p>We prioritize immediate needs. If a van breaks down on tour, we help with roadside assistance. If a rig fails mid-show, we provide loaner gear.</p><br />
             <p>Mutual aid is not charity; it is a way to ensure our artistic culture survives the pressures of commercialization and isolation.</p>
         </div>
         <div class="feature-image-placeholder">

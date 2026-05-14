@@ -1,6 +1,6 @@
 <?php get_header(); ?>
 
-<div class="dev-banner" style="background: var(--color-amber); color: #fff; text-align: center; padding: 10px; font-size: 0.8rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; position: relative; z-index: 101;">
+<div class="dev-banner" style="background: var(--color-gold); color: var(--color-blue-dark); text-align: center; padding: 10px; font-size: 0.8rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; position: relative; z-index: 101;">
     Development Build — Version 0.8.5 Alpha — Site Under Construction
 </div>
 
@@ -8,7 +8,7 @@
     <section class="hero">
         <div class="container">
             <h1>Music is Community.<br>Community is Survival.</h1>
-            <p>IMMAN is a horizontal, direct-action mental health and resource network for Indiana musicians. We look out for each other so we can keep the music playing.</p>
+            <p>IMMAN is a horizontal, direct-action and resource network for Indiana musicians. We look out for each other so we can keep the music playing.</p>
             <div class="hero-btns">
                 <a href="<?php echo esc_url( home_url( '/register' ) ); ?>" class="btn btn-primary">Join the Network</a>
                 <a href="<?php echo esc_url( home_url( '/about' ) ); ?>" class="btn btn-secondary">Learn More</a>

@@ -8,16 +8,31 @@ Text Domain: imman-custom
 */
 
 :root {
-    --color-green: #2d5a27;
-    --color-green-dark: #1e3d1a;
-    --color-amber: #d4a373;
-    --color-cream: #fdfbf7;
-    --color-cream-dark: #f5f1e9;
-    --color-black: #1a1a1a;
-    --color-grey: #666666;
+    /* Indiana state colors — royal/medium blue + gold, drawn from the
+       state flag. Tuned slightly for screen contrast and warmth. */
+    --color-blue: #2a50c8;
+    --color-blue-dark: #1b3380;
+    --color-gold: #e0a92e;
+    --color-gold-dark: #b07f1a;
+
+    /* Cool, crisp neutrals to let the blue lead */
+    --color-bg: #f7f9fc;
+    --color-bg-alt: #e7ecf5;
+    --color-black: #16181d;
+    --color-grey: #5c6470;
+
+    /* Back-compat aliases: the theme's older green/amber/cream variable
+       names now point at the Indiana palette, so every existing
+       `var(--color-...)` reference re-themes automatically. */
+    --color-green: var(--color-blue);
+    --color-green-dark: var(--color-blue-dark);
+    --color-amber: var(--color-gold);
+    --color-cream: var(--color-bg);
+    --color-cream-dark: var(--color-bg-alt);
+
     --font-heading: 'Outfit', sans-serif;
     --font-body: 'Inter', sans-serif;
-    --shadow: 0 4px 20px rgba(45, 90, 39, 0.08);
+    --shadow: 0 4px 20px rgba(42, 80, 200, 0.10);
 }
 
 * {
@@ -80,6 +95,42 @@ a:hover {
 
 .site-logo {
     text-decoration: none !important;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+/* Indiana state emblem — blue silhouette with the state flag's gold torch */
+.site-emblem {
+    display: block;
+    flex-shrink: 0;
+}
+
+.site-emblem svg,
+.site-emblem img {
+    display: block;
+    height: 50px;
+    width: auto;
+}
+
+.site-emblem__state {
+    fill: var(--color-blue);
+    transition: fill 0.2s ease;
+}
+
+.site-emblem__torch path,
+.site-emblem__torch rect {
+    fill: var(--color-gold);
+}
+
+.site-emblem__rays line {
+    stroke: var(--color-gold);
+    stroke-width: 3.8;
+    stroke-linecap: round;
+}
+
+.site-logo:hover .site-emblem__state {
+    fill: var(--color-blue-dark);
 }
 
 .logo-text {
@@ -95,7 +146,7 @@ a:hover {
     color: var(--color-green);
     letter-spacing: -0.05em;
     display: block;
-    filter: drop-shadow(0 2px 4px rgba(45, 90, 39, 0.1));
+    filter: drop-shadow(0 2px 4px rgba(42, 80, 200, 0.12));
 }
 
 .logo-sub {
@@ -217,7 +268,7 @@ a:hover {
 }
 
 .hero p {
-    font-size: 1.4rem;
+    font-size: 1.3rem;
     line-height: 1.7;
     font-weight: 450;
     /* Slightly heavier for better contrast on Retina */
@@ -300,7 +351,12 @@ a:hover {
 }
 
 .btn-secondary {
-    background: var(--color-amber);
+    background: var(--color-gold);
+    color: var(--color-blue-dark) !important;
+}
+
+.btn-secondary:hover {
+    background: var(--color-gold-dark);
     color: #fff !important;
 }
 
@@ -317,6 +373,14 @@ a:hover {
     padding-top: 20px;
     text-align: center;
     font-size: 0.9rem;
+}
+
+.footer-bottom a {
+    color: var(--color-amber);
+}
+
+.footer-bottom a:hover {
+    color: var(--color-green);
 }
 
 /* Menu Toggle */
@@ -491,6 +555,15 @@ body.menu-open {
 
     .logo-main {
         font-size: 1.8rem;
+    }
+
+    .site-emblem svg,
+    .site-emblem img {
+        height: 40px;
+    }
+
+    .site-logo {
+        gap: 10px;
     }
 
     .pillar-card {
@@ -874,7 +947,7 @@ body.menu-open {
     font-weight: 700;
     color: var(--color-green);
     opacity: 0.5;
-    border: 2px dashed rgba(45, 90, 39, 0.2);
+    border: 2px dashed rgba(42, 80, 200, 0.22);
 }
 
 .values-grid {
@@ -1034,7 +1107,7 @@ body.menu-open {
     border-color: var(--color-green) !important;
     background-color: #fff !important;
     outline: none !important;
-    box-shadow: 0 0 0 4px rgba(45, 90, 39, 0.05) !important;
+    box-shadow: 0 0 0 4px rgba(42, 80, 200, 0.10) !important;
 }
 
 .um-button {
