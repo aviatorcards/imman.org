@@ -3,6 +3,19 @@
     const button = container.querySelector('.menu-toggle');
     const menu = container.querySelector('.main-navigation');
 
+    let scrollTicking = false;
+    function updateScrollState() {
+        container.classList.toggle('is-scrolled', window.scrollY > 8);
+        scrollTicking = false;
+    }
+    window.addEventListener('scroll', function() {
+        if (!scrollTicking) {
+            window.requestAnimationFrame(updateScrollState);
+            scrollTicking = true;
+        }
+    }, { passive: true });
+    updateScrollState();
+
     if (!button || !menu) {
         return;
     }
