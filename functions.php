@@ -337,6 +337,154 @@ function imman_handle_venue_submission() {
 add_action( 'admin_post_submit_venue_report', 'imman_handle_venue_submission' );
 add_action( 'admin_post_nopriv_submit_venue_report', 'imman_handle_venue_submission' );
 
+// Artist Site Requests — CPT to track member requests for yourband.imman.org sites.
+// Provisioning is manual at this stage; see ARTIST_SITES_TODO.md for the automation roadmap.
+function imman_register_site_request_cpt() {
+    register_post_type( 'site_request', array(
+        'labels'       => array(
+            'name'          => 'Artist Site Requests',
+            'singular_name' => 'Artist Site Request',
+            'menu_name'     => 'Artist Sites',
+        ),
+        'public'       => false,
+        'show_ui'      => true,
+        'show_in_menu' => true,
+        'menu_icon'    => 'dashicons-microphone',
+        'supports'     => array( 'title', 'editor', 'custom-fields' ),
+        'capability_type' => 'post',
+    ) );
+}
+add_action( 'init', 'imman_register_site_request_cpt' );
+
+// Show the key request fields in the admin list view so reviewers can scan
+// requested subdomains and themes without opening each post.
+function imman_site_request_columns( $columns ) {
+    $new = array();
+    foreach ( $columns as $key => $label ) {
+        $new[ $key ] = $label;
+        if ( 'title' === $key ) {
+            $new['subdomain']  = 'Subdomain';
+            $new['theme_pref'] = 'Theme';
+            $new['requester']  = 'Requester';
+            $new['req_status'] = 'Status';
+        }
+    }
+    return $new;
+}
+add_filter( 'manage_site_request_posts_columns', 'imman_site_request_columns' );
+
+function imman_site_request_column_data( $column, $post_id ) {
+    switch ( $column ) {
+        case 'subdomain':
+            $sub = get_post_meta( $post_id, 'requested_subdomain', true );
+            echo $sub ? esc_html( $sub . '.imman.org' ) : '—';
+            break;
+        case 'theme_pref':
+            echo esc_html( get_post_meta( $post_id, 'theme_preference', true ) ?: '—' );
+            break;
+        case 'requester':
+            $name  = get_post_meta( $post_id, 'requester_name', true );
+            $email = get_post_meta( $post_id, 'requester_email', true );
+            if ( $name || $email ) {
+                echo esc_html( $name );
+                if ( $email ) echo '<br><small>' . esc_html( $email ) . '</small>';
+            } else {
+                echo '—';
+            }
+            break;
+        case 'req_status':
+            echo esc_html( get_post_meta( $post_id, 'provision_status', true ) ?: 'pending review' );
+            break;
+    }
+}
+add_action( 'manage_site_request_posts_custom_column', 'imman_site_request_column_data', 10, 2 );
+
+// Process the artist site request form on template-artist-sites.php
+function imman_handle_artist_site_request() {
+    if ( ! isset( $_POST['artist_site_nonce'] ) || ! wp_verify_nonce( $_POST['artist_site_nonce'], 'imman_artist_site_request' ) ) {
+        wp_die( 'Security check failed.' );
+    }
+
+    if ( ! is_user_logged_in() ) {
+        wp_redirect( add_query_arg( 'site_request', 'error', wp_get_referer() ) );
+        exit;
+    }
+
+    $subdomain    = strtolower( sanitize_text_field( $_POST['subdomain'] ?? '' ) );
+    $project_name = sanitize_text_field( $_POST['project_name'] ?? '' );
+    $genre        = sanitize_text_field( $_POST['genre'] ?? '' );
+    $theme        = sanitize_text_field( $_POST['theme_preference'] ?? '' );
+    $notes        = sanitize_textarea_field( $_POST['notes'] ?? '' );
+
+    // Subdomain rules: 3–32 chars, lowercase alphanum + hyphen, no leading/trailing hyphen.
+    $subdomain_valid = (bool) preg_match( '/^[a-z0-9][a-z0-9-]{1,30}[a-z0-9]$/', $subdomain );
+
+    // Reserved subdomains we don't want anyone claiming.
+    $reserved = array( 'www', 'mail', 'admin', 'api', 'app', 'blog', 'cdn', 'dev', 'staging', 'test', 'shop', 'store', 'imman', 'help', 'docs', 'support' );
+
+    if ( empty( $subdomain ) || empty( $project_name ) || ! $subdomain_valid || in_array( $subdomain, $reserved, true ) ) {
+        wp_redirect( add_query_arg( 'site_request', 'error', wp_get_referer() ) );
+        exit;
+    }
+
+    // Reject duplicate requests for the same subdomain (any status except trash).
+    $existing = get_posts( array(
+        'post_type'      => 'site_request',
+        'post_status'    => array( 'publish', 'pending', 'draft', 'private' ),
+        'meta_key'       => 'requested_subdomain',
+        'meta_value'     => $subdomain,
+        'posts_per_page' => 1,
+        'fields'         => 'ids',
+    ) );
+    if ( ! empty( $existing ) ) {
+        wp_redirect( add_query_arg( 'site_request', 'taken', wp_get_referer() ) );
+        exit;
+    }
+
+    $user = wp_get_current_user();
+
+    $post_id = wp_insert_post( array(
+        'post_title'   => sprintf( '%s (%s.imman.org)', $project_name, $subdomain ),
+        'post_content' => $notes,
+        'post_status'  => 'pending',
+        'post_type'    => 'site_request',
+        'post_author'  => $user->ID,
+    ) );
+
+    if ( ! $post_id || is_wp_error( $post_id ) ) {
+        wp_redirect( add_query_arg( 'site_request', 'error', wp_get_referer() ) );
+        exit;
+    }
+
+    update_post_meta( $post_id, 'requested_subdomain', $subdomain );
+    update_post_meta( $post_id, 'project_name',        $project_name );
+    update_post_meta( $post_id, 'genre',               $genre );
+    update_post_meta( $post_id, 'theme_preference',    $theme );
+    update_post_meta( $post_id, 'requester_name',      $user->display_name );
+    update_post_meta( $post_id, 'requester_email',     $user->user_email );
+    update_post_meta( $post_id, 'requester_user_id',   $user->ID );
+    update_post_meta( $post_id, 'provision_status',    'pending review' );
+
+    // Notify admin
+    $admin_email = get_option( 'admin_email' );
+    $subject     = 'New Artist Site Request: ' . $subdomain . '.imman.org';
+    $body        = "A new artist site request was submitted.\n\n";
+    $body       .= "Subdomain:  {$subdomain}.imman.org\n";
+    $body       .= "Project:    {$project_name}\n";
+    $body       .= "Genre:      {$genre}\n";
+    $body       .= "Theme:      {$theme}\n";
+    $body       .= "Requester:  {$user->display_name} <{$user->user_email}>\n\n";
+    if ( $notes ) {
+        $body .= "Notes:\n{$notes}\n\n";
+    }
+    $body .= 'Review here: ' . admin_url( "post.php?post={$post_id}&action=edit" );
+    wp_mail( $admin_email, $subject, $body );
+
+    wp_redirect( add_query_arg( 'site_request', 'success', wp_get_referer() ) . '#request' );
+    exit;
+}
+add_action( 'admin_post_submit_artist_site_request', 'imman_handle_artist_site_request' );
+
 // Filter to rename navigation menu items programmatically for clarity
 function imman_rename_menu_items( $items ) {
     $replacements = array(
