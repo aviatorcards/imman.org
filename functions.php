@@ -337,33 +337,37 @@ function imman_handle_venue_submission() {
 add_action( 'admin_post_submit_venue_report', 'imman_handle_venue_submission' );
 add_action( 'admin_post_nopriv_submit_venue_report', 'imman_handle_venue_submission' );
 
-// Artist Site Requests — CPT to track member requests for yourband.imman.org sites.
-// Provisioning is manual at this stage; see ARTIST_SITES_TODO.md for the automation roadmap.
+/* ============================================================
+   Artist Sites — request, provisioning, admin tracking.
+   Subdirectory multisite is the target. The form falls back to
+   request-collection mode when multisite isn't enabled yet.
+   See ARTIST_SITES_TODO.md for the conversion checklist.
+   ============================================================ */
+
+// CPT used as both a request log AND a record of provisioned sites.
 function imman_register_site_request_cpt() {
     register_post_type( 'site_request', array(
         'labels'       => array(
-            'name'          => 'Artist Site Requests',
-            'singular_name' => 'Artist Site Request',
+            'name'          => 'Artist Sites',
+            'singular_name' => 'Artist Site',
             'menu_name'     => 'Artist Sites',
         ),
-        'public'       => false,
-        'show_ui'      => true,
-        'show_in_menu' => true,
-        'menu_icon'    => 'dashicons-microphone',
-        'supports'     => array( 'title', 'editor', 'custom-fields' ),
+        'public'          => false,
+        'show_ui'         => true,
+        'show_in_menu'    => true,
+        'menu_icon'       => 'dashicons-microphone',
+        'supports'        => array( 'title', 'editor', 'custom-fields' ),
         'capability_type' => 'post',
     ) );
 }
 add_action( 'init', 'imman_register_site_request_cpt' );
 
-// Show the key request fields in the admin list view so reviewers can scan
-// requested subdomains and themes without opening each post.
 function imman_site_request_columns( $columns ) {
     $new = array();
     foreach ( $columns as $key => $label ) {
         $new[ $key ] = $label;
         if ( 'title' === $key ) {
-            $new['subdomain']  = 'Subdomain';
+            $new['site_url']   = 'URL';
             $new['theme_pref'] = 'Theme';
             $new['requester']  = 'Requester';
             $new['req_status'] = 'Status';
@@ -375,9 +379,23 @@ add_filter( 'manage_site_request_posts_columns', 'imman_site_request_columns' );
 
 function imman_site_request_column_data( $column, $post_id ) {
     switch ( $column ) {
-        case 'subdomain':
-            $sub = get_post_meta( $post_id, 'requested_subdomain', true );
-            echo $sub ? esc_html( $sub . '.imman.org' ) : '—';
+        case 'site_url':
+            $slug = get_post_meta( $post_id, 'requested_slug', true );
+            if ( ! $slug ) {
+                echo '—';
+                break;
+            }
+            $blog_id = (int) get_post_meta( $post_id, 'blog_id', true );
+            $url     = home_url( '/' . $slug . '/' );
+            if ( $blog_id ) {
+                printf(
+                    '<a href="%s" target="_blank" rel="noopener">imman.org/%s</a>',
+                    esc_url( $url ),
+                    esc_html( $slug )
+                );
+            } else {
+                echo esc_html( 'imman.org/' . $slug );
+            }
             break;
         case 'theme_pref':
             echo esc_html( get_post_meta( $post_id, 'theme_preference', true ) ?: '—' );
@@ -399,91 +417,230 @@ function imman_site_request_column_data( $column, $post_id ) {
 }
 add_action( 'manage_site_request_posts_custom_column', 'imman_site_request_column_data', 10, 2 );
 
+/**
+ * Slugs that must never be claimable as an artist site path because they
+ * collide with WordPress core, the main site's pages, or registered CPTs.
+ * Kept centralized so the form handler and any future preflight checks agree.
+ */
+function imman_artist_reserved_slugs() {
+    return array(
+        // WP core / standard endpoints
+        'wp-admin', 'wp-login', 'wp-content', 'wp-includes', 'wp-json',
+        'wp-cron', 'wp-comments-post', 'xmlrpc', 'feed', 'comments',
+        // Common URL primitives that conflict with rewrites
+        'page', 'category', 'tag', 'author', 'attachment', 'search', 'sitemap',
+        // Main site pages (template-*.php on imman-custom)
+        'about', 'community', 'contact', 'gear', 'skill-swap', 'tour-in',
+        'venues', 'submit-network', 'submit-venue', 'artist-sites', 'login',
+        'register', 'account', 'profile', 'members', 'user',
+        // CPT base slugs from this theme
+        'venue', 'stay', 'skill', 'site_request',
+        // Brand / role / generic names we want to keep
+        'www', 'mail', 'admin', 'administrator', 'root', 'api', 'app',
+        'cdn', 'dev', 'staging', 'test', 'shop', 'store', 'help', 'docs',
+        'support', 'imman', 'network', 'sites', 'site',
+    );
+}
+
+/**
+ * Provision a brand-new subdirectory site for an artist.
+ *
+ * @param array $args { user_id, slug, title, theme }
+ * @return int|WP_Error new blog ID on success
+ */
+function imman_provision_artist_site( $args ) {
+    if ( ! is_multisite() ) {
+        return new WP_Error( 'not_multisite', 'Multisite is not enabled on this install.' );
+    }
+
+    $user_id = (int) ( $args['user_id'] ?? 0 );
+    $slug    = sanitize_title( $args['slug']  ?? '' );
+    $title   = sanitize_text_field( $args['title'] ?? '' );
+    $theme   = sanitize_key( $args['theme'] ?? '' );
+
+    if ( ! $user_id || ! $slug || ! $title ) {
+        return new WP_Error( 'missing_args', 'user_id, slug, and title are required.' );
+    }
+
+    $user = get_userdata( $user_id );
+    if ( ! $user ) {
+        return new WP_Error( 'no_user', 'User not found.' );
+    }
+
+    $domain = parse_url( network_site_url(), PHP_URL_HOST );
+    $path   = '/' . $slug . '/';
+
+    if ( domain_exists( $domain, $path ) ) {
+        return new WP_Error( 'taken', 'A site already exists at that URL.' );
+    }
+
+    $blog_id = wpmu_create_blog( $domain, $path, $title, $user_id );
+    if ( is_wp_error( $blog_id ) ) {
+        return $blog_id;
+    }
+
+    // Activate the chosen theme on the new site, if it's a known one.
+    if ( $theme && 'byo' !== $theme ) {
+        $available = wp_get_themes();
+        if ( isset( $available[ $theme ] ) ) {
+            switch_to_blog( $blog_id );
+            switch_theme( $theme );
+            restore_current_blog();
+        }
+    }
+
+    return $blog_id;
+}
+
 // Process the artist site request form on template-artist-sites.php
 function imman_handle_artist_site_request() {
     if ( ! isset( $_POST['artist_site_nonce'] ) || ! wp_verify_nonce( $_POST['artist_site_nonce'], 'imman_artist_site_request' ) ) {
         wp_die( 'Security check failed.' );
     }
 
+    $referer = wp_get_referer() ?: home_url( '/artist-sites' );
+
     if ( ! is_user_logged_in() ) {
-        wp_redirect( add_query_arg( 'site_request', 'error', wp_get_referer() ) );
+        wp_safe_redirect( add_query_arg( 'site_request', 'error', $referer ) );
         exit;
     }
 
-    $subdomain    = strtolower( sanitize_text_field( $_POST['subdomain'] ?? '' ) );
-    $project_name = sanitize_text_field( $_POST['project_name'] ?? '' );
-    $genre        = sanitize_text_field( $_POST['genre'] ?? '' );
-    $theme        = sanitize_text_field( $_POST['theme_preference'] ?? '' );
-    $notes        = sanitize_textarea_field( $_POST['notes'] ?? '' );
+    $user         = wp_get_current_user();
+    $slug         = strtolower( sanitize_text_field( wp_unslash( $_POST['slug'] ?? '' ) ) );
+    $project_name = sanitize_text_field( wp_unslash( $_POST['project_name'] ?? '' ) );
+    $genre        = sanitize_text_field( wp_unslash( $_POST['genre'] ?? '' ) );
+    $theme        = sanitize_key( $_POST['theme_preference'] ?? '' );
+    $notes        = sanitize_textarea_field( wp_unslash( $_POST['notes'] ?? '' ) );
 
-    // Subdomain rules: 3–32 chars, lowercase alphanum + hyphen, no leading/trailing hyphen.
-    $subdomain_valid = (bool) preg_match( '/^[a-z0-9][a-z0-9-]{1,30}[a-z0-9]$/', $subdomain );
-
-    // Reserved subdomains we don't want anyone claiming.
-    $reserved = array( 'www', 'mail', 'admin', 'api', 'app', 'blog', 'cdn', 'dev', 'staging', 'test', 'shop', 'store', 'imman', 'help', 'docs', 'support' );
-
-    if ( empty( $subdomain ) || empty( $project_name ) || ! $subdomain_valid || in_array( $subdomain, $reserved, true ) ) {
-        wp_redirect( add_query_arg( 'site_request', 'error', wp_get_referer() ) );
+    $fail = function( $code, $reason = '' ) use ( $referer ) {
+        $args = array( 'site_request' => $code );
+        if ( $reason ) $args['reason'] = rawurlencode( $reason );
+        wp_safe_redirect( add_query_arg( $args, $referer ) . '#request' );
         exit;
+    };
+
+    // Slug shape: 3–32 chars, lowercase alphanum + hyphen, no leading/trailing hyphen.
+    $slug_valid = (bool) preg_match( '/^[a-z0-9][a-z0-9-]{1,30}[a-z0-9]$/', $slug );
+    if ( empty( $slug ) || empty( $project_name ) || ! $slug_valid ) {
+        $fail( 'error', 'Check the URL slug and project name' );
     }
 
-    // Reject duplicate requests for the same subdomain (any status except trash).
+    if ( in_array( $slug, imman_artist_reserved_slugs(), true ) ) {
+        $fail( 'taken' );
+    }
+
+    // Reject if the slug collides with a published page on the main site.
+    $page = get_page_by_path( $slug );
+    if ( $page ) {
+        $fail( 'taken' );
+    }
+
+    // One artist site per user, for now. Stored on user_meta after provisioning.
+    $existing_blog = (int) get_user_meta( $user->ID, 'imman_artist_blog_id', true );
+    if ( $existing_blog ) {
+        $fail( 'limit' );
+    }
+
+    // Reject duplicate slug on already-tracked requests/sites.
     $existing = get_posts( array(
         'post_type'      => 'site_request',
         'post_status'    => array( 'publish', 'pending', 'draft', 'private' ),
-        'meta_key'       => 'requested_subdomain',
-        'meta_value'     => $subdomain,
+        'meta_key'       => 'requested_slug',
+        'meta_value'     => $slug,
         'posts_per_page' => 1,
         'fields'         => 'ids',
     ) );
     if ( ! empty( $existing ) ) {
-        wp_redirect( add_query_arg( 'site_request', 'taken', wp_get_referer() ) );
-        exit;
+        $fail( 'taken' );
     }
 
-    $user = wp_get_current_user();
-
+    // Always log the request as a CPT post — gives us audit history regardless of mode.
     $post_id = wp_insert_post( array(
-        'post_title'   => sprintf( '%s (%s.imman.org)', $project_name, $subdomain ),
+        'post_title'   => sprintf( '%s (imman.org/%s)', $project_name, $slug ),
         'post_content' => $notes,
-        'post_status'  => 'pending',
+        'post_status'  => is_multisite() ? 'publish' : 'pending',
         'post_type'    => 'site_request',
         'post_author'  => $user->ID,
-    ) );
+    ), true );
 
     if ( ! $post_id || is_wp_error( $post_id ) ) {
-        wp_redirect( add_query_arg( 'site_request', 'error', wp_get_referer() ) );
+        $fail( 'error', 'Could not record the request' );
+    }
+
+    update_post_meta( $post_id, 'requested_slug',    $slug );
+    update_post_meta( $post_id, 'project_name',      $project_name );
+    update_post_meta( $post_id, 'genre',             $genre );
+    update_post_meta( $post_id, 'theme_preference',  $theme );
+    update_post_meta( $post_id, 'requester_name',    $user->display_name );
+    update_post_meta( $post_id, 'requester_email',   $user->user_email );
+    update_post_meta( $post_id, 'requester_user_id', $user->ID );
+
+    // Multisite mode: provision immediately and send the user to their dashboard.
+    if ( is_multisite() ) {
+        $blog_id = imman_provision_artist_site( array(
+            'user_id' => $user->ID,
+            'slug'    => $slug,
+            'title'   => $project_name,
+            'theme'   => $theme,
+        ) );
+
+        if ( is_wp_error( $blog_id ) ) {
+            update_post_meta( $post_id, 'provision_status', 'failed: ' . $blog_id->get_error_message() );
+            $fail( 'error', $blog_id->get_error_message() );
+        }
+
+        update_post_meta( $post_id, 'blog_id',          (int) $blog_id );
+        update_post_meta( $post_id, 'provision_status', 'provisioned' );
+        update_user_meta( $user->ID, 'imman_artist_blog_id', (int) $blog_id );
+
+        // Notify admin (for awareness, not action).
+        wp_mail(
+            get_option( 'admin_email' ),
+            'Artist site provisioned: imman.org/' . $slug,
+            "{$user->display_name} <{$user->user_email}> created imman.org/{$slug} ({$project_name}).\nTheme: {$theme}\nAdmin: " . get_admin_url( $blog_id )
+        );
+
+        wp_safe_redirect( get_admin_url( $blog_id ) );
         exit;
     }
 
-    update_post_meta( $post_id, 'requested_subdomain', $subdomain );
-    update_post_meta( $post_id, 'project_name',        $project_name );
-    update_post_meta( $post_id, 'genre',               $genre );
-    update_post_meta( $post_id, 'theme_preference',    $theme );
-    update_post_meta( $post_id, 'requester_name',      $user->display_name );
-    update_post_meta( $post_id, 'requester_email',     $user->user_email );
-    update_post_meta( $post_id, 'requester_user_id',   $user->ID );
-    update_post_meta( $post_id, 'provision_status',    'pending review' );
+    // Fallback (single-site mode): treat as a request, notify admin, return success.
+    update_post_meta( $post_id, 'provision_status', 'pending review' );
+    wp_mail(
+        get_option( 'admin_email' ),
+        'New Artist Site Request: imman.org/' . $slug,
+        "A new artist site request was submitted.\n\n"
+        . "URL:       imman.org/{$slug}\n"
+        . "Project:   {$project_name}\n"
+        . "Genre:     {$genre}\n"
+        . "Theme:     {$theme}\n"
+        . "Requester: {$user->display_name} <{$user->user_email}>\n\n"
+        . ( $notes ? "Notes:\n{$notes}\n\n" : '' )
+        . 'Review here: ' . admin_url( "post.php?post={$post_id}&action=edit" )
+    );
 
-    // Notify admin
-    $admin_email = get_option( 'admin_email' );
-    $subject     = 'New Artist Site Request: ' . $subdomain . '.imman.org';
-    $body        = "A new artist site request was submitted.\n\n";
-    $body       .= "Subdomain:  {$subdomain}.imman.org\n";
-    $body       .= "Project:    {$project_name}\n";
-    $body       .= "Genre:      {$genre}\n";
-    $body       .= "Theme:      {$theme}\n";
-    $body       .= "Requester:  {$user->display_name} <{$user->user_email}>\n\n";
-    if ( $notes ) {
-        $body .= "Notes:\n{$notes}\n\n";
-    }
-    $body .= 'Review here: ' . admin_url( "post.php?post={$post_id}&action=edit" );
-    wp_mail( $admin_email, $subject, $body );
-
-    wp_redirect( add_query_arg( 'site_request', 'success', wp_get_referer() ) . '#request' );
+    wp_safe_redirect( add_query_arg( 'site_request', 'success', $referer ) . '#request' );
     exit;
 }
 add_action( 'admin_post_submit_artist_site_request', 'imman_handle_artist_site_request' );
+
+// Persistent admin nag until multisite is configured. The form works in
+// fallback mode without it, but auto-provisioning needs the network.
+function imman_artist_sites_admin_notice() {
+    if ( ! current_user_can( 'manage_options' ) ) return;
+    if ( is_multisite() ) return;
+
+    $screen = get_current_screen();
+    $relevant = $screen && in_array( $screen->id, array( 'dashboard', 'edit-site_request' ), true );
+    if ( ! $relevant ) return;
+
+    echo '<div class="notice notice-warning"><p>';
+    echo '<strong>Artist Sites:</strong> Multisite is not enabled, so the request form is in <em>manual review</em> mode. ';
+    echo 'Enable WordPress multisite (subdirectory) to turn on instant self-serve provisioning. ';
+    echo 'Steps are in <code>ARTIST_SITES_TODO.md</code> at the project root.';
+    echo '</p></div>';
+}
+add_action( 'admin_notices', 'imman_artist_sites_admin_notice' );
 
 // Filter to rename navigation menu items programmatically for clarity
 function imman_rename_menu_items( $items ) {

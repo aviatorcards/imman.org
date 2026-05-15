@@ -90,8 +90,8 @@ get_header(); ?>
 
             <div class="feature-row">
                 <div class="feature-content">
-                    <h2>Your Own Subdomain</h2>
-                    <p>Get a professional URL like <code>yourband.imman.org</code>. No fighting for usernames, no patchwork of social profiles trying to act as your homepage. One stable address you actually own.</p>
+                    <h2>Your Own Subdirectory</h2>
+                    <p>Get a professional URL like <code>imman.org/yourband</code>. No fighting for usernames, no patchwork of social profiles trying to act as your homepage. One stable address you actually own.</p>
                 </div>
                 <div class="as-mockup as-browser-mockup" aria-hidden="true">
                     <div class="as-browser-bar">
@@ -100,7 +100,7 @@ get_header(); ?>
                         </div>
                         <div class="as-browser-url">
                             <svg width="11" height="13" viewBox="0 0 11 13" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M2.5 6V3.5a3 3 0 016 0V6" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/><rect x="1" y="6" width="9" height="6.5" rx="1.2" stroke="currentColor" stroke-width="1.4"/></svg>
-                            <span>yourband.imman.org</span>
+                            <span>imman.org/yourband</span>
                         </div>
                     </div>
                     <div class="as-browser-content">
@@ -207,15 +207,15 @@ get_header(); ?>
                     <li>
                         <span class="as-step-num">2</span>
                         <div>
-                            <h3>Request your subdomain</h3>
-                            <p>Submit the form below with the subdomain you want, your project name, and which theme catches your eye. We'll check that the name is available and reach out within a couple of days.</p>
+                            <h3>Pick your URL</h3>
+                            <p>Submit the form below with the slug you want for <code>imman.org/yourband</code>, your project name, and which theme catches your eye. We'll check that the name isn't taken.</p>
                         </div>
                     </li>
                     <li>
                         <span class="as-step-num">3</span>
                         <div>
-                            <h3>We provision the site</h3>
-                            <p>An IMMAN admin creates your subdomain on the network, points DNS, installs your selected theme, and emails you a login. (For now this is a manual step — see the docs for what's automated and what isn't.)</p>
+                            <h3><?php echo is_multisite() ? 'Your site is created instantly' : 'We create your site'; ?></h3>
+                            <p><?php if ( is_multisite() ) : ?>The moment you submit, a fresh WordPress site is spun up at your URL with your theme already activated. You're redirected straight to the dashboard.<?php else : ?>An IMMAN admin creates your site on the network and emails you a login within a couple of days. (Self-serve provisioning kicks in once the network is configured.)<?php endif; ?></p>
                         </div>
                     </li>
                     <li>
@@ -230,21 +230,30 @@ get_header(); ?>
 
             <section class="as-request-section" id="request">
                 <div class="as-section-head">
-                    <h2>Request your site</h2>
-                    <p>Fill this out and we'll be in touch. Members only — sign in first if you haven't.</p>
+                    <h2><?php echo is_multisite() ? 'Claim your site' : 'Request your site'; ?></h2>
+                    <p><?php echo is_multisite()
+                        ? 'Pick a URL and a theme. Your site goes live the moment you submit.'
+                        : "Fill this out and we'll be in touch. Members only — sign in first if you haven't."; ?></p>
                 </div>
 
                 <?php if ( 'success' === $request_status ) : ?>
                     <div class="as-request-success">
-                        <strong>Request received.</strong> We'll review your subdomain choice and reach out at the email on your account within a few days.
+                        <strong>Request received.</strong> We'll review your slug choice and reach out at the email on your account within a few days.
                     </div>
                 <?php elseif ( 'error' === $request_status ) : ?>
                     <div class="as-request-error">
-                        <strong>Something went wrong.</strong> Please double-check the form and try again, or <a href="<?php echo esc_url( home_url( '/contact' ) ); ?>">contact us</a> if it keeps failing.
+                        <strong>Something went wrong.</strong>
+                        <?php $err = isset( $_GET['reason'] ) ? sanitize_text_field( wp_unslash( $_GET['reason'] ) ) : ''; ?>
+                        <?php if ( $err ) : ?> <em><?php echo esc_html( $err ); ?>.</em><?php endif; ?>
+                        Please double-check the form and try again, or <a href="<?php echo esc_url( home_url( '/contact' ) ); ?>">contact us</a> if it keeps failing.
                     </div>
                 <?php elseif ( 'taken' === $request_status ) : ?>
                     <div class="as-request-error">
-                        <strong>That subdomain is already requested or in use.</strong> Try a different one — variations like adding your city or "music" often work.
+                        <strong>That URL is already in use.</strong> Try a different one — variations like adding your city or "music" often work.
+                    </div>
+                <?php elseif ( 'limit' === $request_status ) : ?>
+                    <div class="as-request-error">
+                        <strong>You already have an artist site.</strong> One per member, for now. <a href="<?php echo esc_url( home_url( '/contact' ) ); ?>">Get in touch</a> if you need a second.
                     </div>
                 <?php endif; ?>
 
@@ -265,10 +274,10 @@ get_header(); ?>
 
                         <div class="as-form-row">
                             <div class="as-form-field">
-                                <label for="as-subdomain">Subdomain <span class="as-required">*</span></label>
-                                <div class="as-subdomain-wrap">
-                                    <input type="text" id="as-subdomain" name="subdomain" required pattern="[a-z0-9][a-z0-9-]{1,30}[a-z0-9]" maxlength="32" placeholder="yourband" autocomplete="off">
-                                    <span class="as-subdomain-suffix">.imman.org</span>
+                                <label for="as-slug">Site URL <span class="as-required">*</span></label>
+                                <div class="as-slug-wrap">
+                                    <span class="as-slug-prefix">imman.org/</span>
+                                    <input type="text" id="as-slug" name="slug" required pattern="[a-z0-9][a-z0-9-]{1,30}[a-z0-9]" maxlength="32" placeholder="yourband" autocomplete="off" spellcheck="false">
                                 </div>
                                 <small>Lowercase letters, numbers, and hyphens. 3–32 characters.</small>
                             </div>
@@ -304,7 +313,7 @@ get_header(); ?>
                             Submitting as <strong><?php echo esc_html( $current_user->display_name ); ?></strong> &lt;<?php echo esc_html( $current_user->user_email ); ?>&gt;
                         </div>
 
-                        <button type="submit" class="btn btn-primary">Submit Request</button>
+                        <button type="submit" class="btn btn-primary"><?php echo is_multisite() ? 'Create my site' : 'Submit request'; ?></button>
                     </form>
                 <?php endif; ?>
             </section>
@@ -319,7 +328,7 @@ get_header(); ?>
                 </details>
                 <details class="as-faq">
                     <summary>What's included?</summary>
-                    <p>A WordPress install on a <code>yourband.imman.org</code> subdomain, your choice of theme from the library above, daily backups, basic spam protection, and a login that's just yours. You can install plugins from a curated allowlist.</p>
+                    <p>A WordPress site at <code>imman.org/yourband</code>, your choice of theme from the library above, daily backups, basic spam protection, and a login that's just yours. You can install plugins from a curated allowlist.</p>
                 </details>
                 <details class="as-faq">
                     <summary>Can I bring my own theme?</summary>
@@ -327,7 +336,7 @@ get_header(); ?>
                 </details>
                 <details class="as-faq">
                     <summary>Can I use a custom domain like <code>oakandashes.com</code>?</summary>
-                    <p>Eventually — yes. For the launch period we're starting with <code>imman.org</code> subdomains so we can get the provisioning right. Custom domain mapping is on the roadmap.</p>
+                    <p>Eventually — yes. For now we're starting with <code>imman.org/yourband</code> URLs so we can get the provisioning right. Custom domain mapping is on the roadmap.</p>
                 </details>
                 <details class="as-faq">
                     <summary>Who owns the content?</summary>
@@ -764,7 +773,7 @@ get_header(); ?>
     box-shadow: 0 0 0 4px rgba(42, 80, 200, 0.10);
 }
 
-.as-subdomain-wrap {
+.as-slug-wrap {
     display: flex;
     align-items: stretch;
     background: var(--color-cream-dark);
@@ -773,12 +782,12 @@ get_header(); ?>
     overflow: hidden;
     transition: all 0.2s ease;
 }
-.as-subdomain-wrap:focus-within {
+.as-slug-wrap:focus-within {
     border-color: var(--color-green);
     background: #fff;
     box-shadow: 0 0 0 4px rgba(42, 80, 200, 0.10);
 }
-.as-subdomain-wrap input {
+.as-slug-wrap input {
     border: 0;
     border-radius: 0;
     background: transparent;
@@ -786,11 +795,11 @@ get_header(); ?>
     flex: 1;
     min-width: 0;
 }
-.as-subdomain-wrap input:focus {
+.as-slug-wrap input:focus {
     background: transparent;
     box-shadow: none !important;
 }
-.as-subdomain-suffix {
+.as-slug-prefix {
     background: rgba(42, 80, 200, 0.08);
     color: var(--color-green);
     padding: 12px 15px;
@@ -799,7 +808,7 @@ get_header(); ?>
     font-size: 1rem;
     display: flex;
     align-items: center;
-    border-left: 1px solid rgba(0,0,0,0.06);
+    border-right: 1px solid rgba(0,0,0,0.06);
 }
 
 .as-form-meta {
