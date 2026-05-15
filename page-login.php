@@ -26,13 +26,15 @@ get_header(); ?>
             ?>
         </div>
 
-        <footer class="auth-footer">
-            <?php if ( is_page( 'login' ) || is_page( 'login-2' ) ) : ?>
-                <p>Don't have an account? <a href="<?php echo esc_url( home_url( '/register' ) ); ?>">Register here</a></p>
-            <?php else : ?>
-                <p>Already have an account? <a href="<?php echo esc_url( home_url( '/login' ) ); ?>">Login here</a></p>
-            <?php endif; ?>
-        </footer>
+        <?php if ( is_page( 'login' ) || is_page( 'register' ) ) : ?>
+            <footer class="auth-footer">
+                <?php if ( is_page( 'login' ) ) : ?>
+                    <p>Don't have an account? <a href="<?php echo esc_url( home_url( '/register' ) ); ?>">Register here</a></p>
+                <?php else : ?>
+                    <p>Already have an account? <a href="<?php echo esc_url( home_url( '/login' ) ); ?>">Login here</a></p>
+                <?php endif; ?>
+            </footer>
+        <?php endif; ?>
     </div>
 </main>
 

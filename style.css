@@ -924,9 +924,9 @@ body.menu-open {
 
 /* Login/Register Page */
 .auth-container {
-    max-width: 500px;
+    max-width: 720px;
     margin: 40px auto;
-    padding: 80px;
+    padding: 60px;
     background: #fff;
     border: 1px solid rgba(0,0,0,0.05);
     border-radius: 4px;

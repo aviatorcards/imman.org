@@ -660,3 +660,89 @@ function imman_rename_menu_items( $items ) {
     return $items;
 }
 add_filter( 'wp_nav_menu_objects', 'imman_rename_menu_items' );
+
+/**
+ * Show Ultimate Member's password rules inline on the registration form
+ * so users see the requirements before they submit.
+ */
+add_action( 'um_after_register_fields', 'imman_um_password_requirements_hint', 5 );
+function imman_um_password_requirements_hint( $args ) {
+    if ( ! function_exists( 'UM' ) ) {
+        return;
+    }
+
+    $form_id = ! empty( $args['form_id'] ) ? absint( $args['form_id'] ) : 0;
+    if ( ! $form_id ) {
+        return;
+    }
+
+    $fields = UM()->query()->get_attr( 'custom_fields', $form_id );
+    if ( ! is_array( $fields ) || empty( $fields['user_password'] ) ) {
+        return;
+    }
+    $field = $fields['user_password'];
+
+    // Only show when the strong-password rules actually apply to this field.
+    if ( empty( $field['force_good_pass'] ) ) {
+        return;
+    }
+
+    $rules = array(
+        __( 'One uppercase letter (A–Z)', 'imman' ),
+        __( 'One lowercase letter (a–z)', 'imman' ),
+        __( 'One number (0–9)', 'imman' ),
+    );
+    if ( UM()->options()->get( 'require_strongpass_special_char' ) ) {
+        $rules[] = __( 'One special character (e.g. !@#$%^&*)', 'imman' );
+    }
+    if ( ! empty( $field['min_chars'] ) ) {
+        $rules[] = sprintf(
+            /* translators: %d: minimum number of characters required. */
+            __( '%d or more characters', 'imman' ),
+            absint( $field['min_chars'] )
+        );
+    }
+
+    $html  = '<div class="imman-password-requirements" role="note">';
+    $html .= '<strong>' . esc_html__( 'Your password must contain:', 'imman' ) . '</strong>';
+    $html .= '<ul>';
+    foreach ( $rules as $rule ) {
+        $html .= '<li>' . esc_html( $rule ) . '</li>';
+    }
+    $html .= '</ul></div>';
+    ?>
+    <style>
+    .imman-password-requirements{font-size:0.9em;color:#444;background:#f5f5f7;border-left:3px solid #3b3bb3;padding:8px 12px;margin:6px 0 10px;border-radius:4px;line-height:1.5;}
+    .imman-password-requirements strong{display:block;margin-bottom:4px;color:#222;font-weight:600;}
+    .imman-password-requirements ul{margin:0 0 0 18px;padding:0;list-style:disc;}
+    .imman-password-requirements li{margin:2px 0;}
+    </style>
+    <script>
+    (function() {
+        var fieldEl = document.getElementById('um_field_<?php echo (int) $form_id; ?>_user_password');
+        if (!fieldEl || fieldEl.querySelector('.imman-password-requirements')) return;
+        var wrap = document.createElement('div');
+        wrap.innerHTML = <?php echo wp_json_encode( $html ); ?>;
+        var hint = wrap.firstChild;
+        var area = fieldEl.querySelector('.um-field-area');
+        if (area) {
+            fieldEl.insertBefore(hint, area);
+        } else {
+            fieldEl.appendChild(hint);
+        }
+    })();
+    </script>
+    <?php
+}
+
+/**
+ * Remove Ultimate Member's secondary "Login" button from the registration form.
+ * The footer already has an "Already have an account? Login here" link.
+ */
+add_filter( 'um_shortcode_args_filter', 'imman_um_hide_register_secondary_btn' );
+function imman_um_hide_register_secondary_btn( $args ) {
+    if ( ! empty( $args['mode'] ) && 'register' === $args['mode'] ) {
+        $args['secondary_btn'] = 0;
+    }
+    return $args;
+}
